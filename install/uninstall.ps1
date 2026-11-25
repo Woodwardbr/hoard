@@ -1,8 +1,9 @@
 # Remove Hoard from Windows. Your data is kept unless you set $env:HOARD_PURGE = "1" first.
 #
-#   powershell -ExecutionPolicy Bypass -c "irm https://github.com/Woodwardbr/hoard/releases/latest/download/uninstall.ps1 | iex"
+#   powershell -ExecutionPolicy Bypass -c "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://github.com/Woodwardbr/hoard/releases/latest/download/uninstall.ps1 | iex"
 
 $ErrorActionPreference = "Continue"
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     $bin = (uv tool dir --bin).Trim()

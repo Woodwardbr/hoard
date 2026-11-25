@@ -72,7 +72,11 @@ def _windows(remove: bool) -> list[Path]:
         return []
     for link in app_links:
         _windows_shortcut(link, _python(windowless=True), "-m hoard", "Open Hoard")
-    update_cmd = f"-NoProfile -ExecutionPolicy Bypass -Command \"irm {INSTALL_PS1} | iex\""
+    update_cmd = (
+        "-NoProfile -ExecutionPolicy Bypass -Command \""
+        "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; "
+        f"irm {INSTALL_PS1} | iex\""
+    )
     _windows_shortcut(
         update_link,
         Path(os.environ.get("SystemRoot", r"C:\Windows"))

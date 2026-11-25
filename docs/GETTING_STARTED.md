@@ -11,7 +11,7 @@ This takes about 15 minutes, plus however long Plaid takes to approve your accou
 2. Copy this line, paste it into the PowerShell window (right-click pastes) and press Enter:
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -c "irm https://github.com/Woodwardbr/hoard/releases/latest/download/install.ps1 | iex"
+   powershell -ExecutionPolicy Bypass -c "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://github.com/Woodwardbr/hoard/releases/latest/download/install.ps1 | iex"
    ```
 
 3. Wait for **Done!**, then press Enter to close the window.

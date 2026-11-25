@@ -1,6 +1,6 @@
 # Install or update Hoard on Windows.
 #
-#   powershell -ExecutionPolicy Bypass -c "irm https://github.com/Woodwardbr/hoard/releases/latest/download/install.ps1 | iex"
+#   powershell -ExecutionPolicy Bypass -c "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://github.com/Woodwardbr/hoard/releases/latest/download/install.ps1 | iex"
 #
 # Installs uv (https://docs.astral.sh/uv/) if needed, then the latest Hoard release
 # with its own Python, and adds Hoard to the Desktop and Start menu (plus an
@@ -8,6 +8,8 @@
 # Set $env:HOARD_VERSION = "v0.1.0" first to install a specific release.
 
 $ErrorActionPreference = "Stop"
+# Windows PowerShell 5.1 can default to TLS versions GitHub rejects.
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 $ProgressPreference = "SilentlyContinue"
 $Repo = "Woodwardbr/hoard"
 

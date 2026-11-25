@@ -22,7 +22,7 @@ own copy of Python) and adds a **Hoard** shortcut. Run the same command again to
 **Windows**: open PowerShell (Start menu, type "PowerShell") and paste:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/Woodwardbr/hoard/releases/latest/download/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://github.com/Woodwardbr/hoard/releases/latest/download/install.ps1 | iex"
 ```
 
 **macOS or Linux**: open Terminal and paste:
@@ -69,8 +69,8 @@ walkthrough.
 
 ## Uninstall
 
-Windows: `irm https://github.com/Woodwardbr/hoard/releases/latest/download/uninstall.ps1 | iex`
-in PowerShell. macOS/Linux:
+Windows: in PowerShell, run
+`powershell -ExecutionPolicy Bypass -c "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm https://github.com/Woodwardbr/hoard/releases/latest/download/uninstall.ps1 | iex"`. macOS/Linux:
 `curl -LsSf https://github.com/Woodwardbr/hoard/releases/latest/download/uninstall.sh | sh`.
 Your data is kept unless you ask to delete it (see the scripts in [install/](install/)).
 
