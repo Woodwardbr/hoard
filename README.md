@@ -52,7 +52,7 @@ To get a `hoard` command you can run from anywhere: `uv tool install .`
 ## Where your data lives
 
 - **Settings (`.env`)**: Hoard looks for `.env` in the current folder first, then in
-  the per-user data folder: `%APPDATA%\hoard` (Windows),
+  the per-user data folder: `%LOCALAPPDATA%\hoard` (Windows),
   `~/Library/Application Support/hoard` (macOS), `~/.local/share/hoard` (Linux).
   Set `HOARD_HOME` to use a different folder.
 - **Database**: `DB_PATH` from `.env`. Relative paths are relative to the `.env`'s folder,

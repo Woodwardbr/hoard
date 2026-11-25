@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c2330"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd866"/>
+      <stop offset="1" stop-color="#e0a800"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg)"/>
+  <!-- coin pile -->
+  <g stroke="#a87700" stroke-width="4">
+    <ellipse cx="96" cy="188" rx="46" ry="15" fill="url(#gold)"/>
+    <rect x="50" y="160" width="92" height="28" fill="url(#gold)" stroke="none"/>
+    <path d="M50 160 v28 M142 160 v28" fill="none"/>
+    <ellipse cx="96" cy="160" rx="46" ry="15" fill="#ffd866"/>
+    <ellipse cx="160" cy="196" rx="46" ry="15" fill="url(#gold)"/>
+    <rect x="114" y="140" width="92" height="56" fill="url(#gold)" stroke="none"/>
+    <path d="M114 140 v56 M206 140 v56" fill="none"/>
+    <ellipse cx="160" cy="140" rx="46" ry="15" fill="#ffd866"/>
+    <ellipse cx="128" cy="112" rx="46" ry="15" fill="url(#gold)"/>
+    <rect x="82" y="72" width="92" height="40" fill="url(#gold)" stroke="none"/>
+    <path d="M82 72 v40 M174 72 v40" fill="none"/>
+    <ellipse cx="128" cy="72" rx="46" ry="15" fill="#ffe28a"/>
+  </g>
+  <!-- sparkle -->
+  <path d="M196 54 l6 16 16 6 -16 6 -6 16 -6 -16 -16 -6 16 -6z" fill="#fff4c2"/>
+</svg>

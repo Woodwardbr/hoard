@@ -262,6 +262,20 @@ def _is_loopback(host: str) -> bool:
         return False
 
 
+def _log_to_file_without_console() -> None:
+    """Started from a shortcut with no console (pythonw), output has nowhere to go;
+    send it to hoard.log in the data folder so problems can be diagnosed."""
+    import sys
+
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    log_path = config.data_dir() / "hoard.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    stream = open(log_path, "a", buffering=1, encoding="utf-8")  # noqa: SIM115 - lives for the process
+    sys.stdout = sys.stdout or stream
+    sys.stderr = sys.stderr or stream
+
+
 def _already_running() -> bool:
     import json
     import urllib.request
@@ -305,19 +319,29 @@ def run(argv: list[str] | None = None) -> None:
     """
     parser = argparse.ArgumentParser(prog="hoard", description="Run Hoard.")
     parser.add_argument(
-        "command", nargs="?", choices=["serve", "mcp"], default="serve",
-        help="serve (default): run the dashboard; mcp: run the MCP server for AI agents",
+        "command", nargs="?", choices=["serve", "mcp", "shortcuts"], default="serve",
+        help="serve (default): run the dashboard; mcp: run the MCP server for AI agents; "
+        "shortcuts: create desktop/Start menu shortcuts",
+    )
+    parser.add_argument(
+        "--remove", action="store_true", help="with 'shortcuts': remove them instead"
     )
     parser.add_argument(
         "--no-browser", action="store_true", help="don't open the dashboard in a browser"
     )
     args = parser.parse_args(argv)
+    if args.command == "shortcuts":
+        from . import shortcuts
+
+        shortcuts.run(remove=args.remove)
+        return
     if args.command == "mcp":
         from .mcp_server import main as mcp_main
 
         mcp_main()
         return
     open_browser = not (args.no_browser or os.environ.get("HOARD_NO_BROWSER"))
+    _log_to_file_without_console()
 
     # Double-clicking the shortcut again shouldn't fail on a busy port: if Hoard
     # is already running there, just show it.

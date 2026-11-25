@@ -15,7 +15,7 @@ def data_dir() -> Path:
     """Per-user folder for the database, backups and (optionally) ``.env``.
 
     ``HOARD_HOME`` overrides it; otherwise it is the OS convention, e.g.
-    ``%APPDATA%\\hoard`` or ``~/Library/Application Support/hoard``.
+    ``%LOCALAPPDATA%\\hoard`` or ``~/Library/Application Support/hoard``.
     """
     override = os.environ.get("HOARD_HOME")
     return Path(override).expanduser() if override else Path(user_data_dir(APP_NAME, False))
