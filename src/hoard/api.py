@@ -5,10 +5,11 @@ import re
 from datetime import date
 from typing import Literal
 
+import plaid as plaid_sdk
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from . import analytics, splits, sync
+from . import analytics, config, splits, sync
 from . import plaid as plaid_wrapper
 from .config import settings
 from .plaid import create_link_token as create_plaid_link_token
@@ -65,6 +66,47 @@ class MerchantRuleReq(BaseModel):
 
 class TransactionOverrideReq(BaseModel):
     override_category: str | None = None
+
+
+class SetupKeysReq(BaseModel):
+    client_id: str = Field(min_length=10, max_length=64)
+    secret: str = Field(min_length=10, max_length=64)
+    environment: Literal["production", "sandbox"] = "production"
+
+
+@router.post("/api/setup/keys")
+def setup_keys(req: SetupKeysReq) -> dict:
+    """Check Plaid keys with a real request, then save and start using them."""
+    client_id, secret = req.client_id.strip(), req.secret.strip()
+    try:
+        plaid_wrapper.validate_credentials(client_id, secret, req.environment)
+    except plaid_sdk.ApiException as exc:
+        code = plaid_wrapper.error_code(exc)
+        if code in ("INVALID_API_KEYS", "INVALID_CLIENT_ID", "INVALID_SECRET"):
+            detail = (
+                "Plaid didn't accept those keys. Check that you copied the whole client_id, "
+                f"and the {req.environment.title()} secret (not the other environment's)."
+            )
+        else:
+            detail = f"Plaid returned an error: {plaid_wrapper.error_message(exc)}"
+        raise HTTPException(status_code=400, detail=detail) from exc
+    except Exception as exc:  # network problems, DNS, etc.
+        raise HTTPException(
+            status_code=502,
+            detail=f"Couldn't reach Plaid to check the keys ({type(exc).__name__}). "
+            "Check your internet connection and try again.",
+        ) from exc
+    saved_to = config.save_plaid_credentials(client_id, secret, req.environment)
+    config.apply_plaid_credentials(client_id, secret, req.environment, saved_to)
+    return {
+        "status": "saved",
+        "saved_to": saved_to,
+        "saved_to_label": (
+            "your computer's secure password storage"
+            if saved_to == "keychain"
+            else f"a private settings file ({config.data_dir() / '.env'})"
+        ),
+    }
 
 
 @router.get("/api/health")

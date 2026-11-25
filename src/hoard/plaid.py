@@ -151,23 +151,23 @@ def _env_to_plaid_environment(env: str) -> str:
     return mapping.get(env, plaid.Environment.Sandbox)
 
 
-@functools.lru_cache(maxsize=1)
-def _build_client() -> plaid_api.PlaidApi:
-    """Build a PlaidApi client (cached across calls)."""
+@functools.lru_cache(maxsize=4)
+def _client_for(env: str, client_id: str, secret: str) -> plaid_api.PlaidApi:
+    """A PlaidApi client for these credentials (cached, so new keys get a new client)."""
     configuration = plaid.Configuration(
-        host=_env_to_plaid_environment(settings.plaid_env_value),
-        api_key={
-            "clientId": settings.plaid_client_id,
-            "secret": settings.plaid_secret,
-        },
+        host=_env_to_plaid_environment(env),
+        api_key={"clientId": client_id, "secret": secret},
     )
-    api_client = plaid.ApiClient(configuration)
-    return plaid_api.PlaidApi(api_client)
+    return plaid_api.PlaidApi(plaid.ApiClient(configuration))
+
+
+def _build_client() -> plaid_api.PlaidApi:
+    return _client_for(settings.plaid_env_value, settings.plaid_client_id, settings.plaid_secret)
 
 
 CREDENTIALS_MISSING_MESSAGE = (
-    "Plaid keys aren't set up yet. Add PLAID_CLIENT_ID and PLAID_SECRET to your .env "
-    "(see .env.example), then restart Hoard."
+    "Plaid keys aren't set up yet. Open Settings and choose \"Change Plaid keys\" "
+    "(or add PLAID_CLIENT_ID and PLAID_SECRET to your .env and restart Hoard)."
 )
 
 
@@ -207,7 +207,15 @@ def create_link_token(access_token: str | None = None) -> str:
     while keeping its item_id, access token, and sync cursor. Plaid rejects
     ``products`` in update mode, so they are only sent for new links.
     """
-    client = _client()
+    return _client().link_token_create(_link_token_request(access_token))["link_token"]
+
+
+def validate_credentials(client_id: str, secret: str, env: str) -> None:
+    """Raise if Plaid rejects these keys (by creating a throwaway Link token)."""
+    _client_for(env, client_id, secret).link_token_create(_link_token_request(None))
+
+
+def _link_token_request(access_token: str | None) -> LinkTokenCreateRequest:
     common: dict[str, Any] = {
         "user": LinkTokenCreateRequestUser(client_user_id="hoard-user"),
         "client_name": "Hoard",
@@ -215,16 +223,13 @@ def create_link_token(access_token: str | None = None) -> str:
         "language": "en",
     }
     if access_token is not None:
-        request = LinkTokenCreateRequest(access_token=access_token, **common)
-    else:
-        request = LinkTokenCreateRequest(
-            products=[Products("transactions"), Products("investments")],
-            # Needed by the agent API payoff-balances (statement balances, loan payments due).
-            optional_products=[Products("liabilities")],
-            **common,
-        )
-    response = client.link_token_create(request)
-    return response["link_token"]
+        return LinkTokenCreateRequest(access_token=access_token, **common)
+    return LinkTokenCreateRequest(
+        products=[Products("transactions"), Products("investments")],
+        # Needed by the agent API payoff-balances (statement balances, loan payments due).
+        optional_products=[Products("liabilities")],
+        **common,
+    )
 
 
 def get_accounts(access_token: str) -> list[AccountSnapshot]:

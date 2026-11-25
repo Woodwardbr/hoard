@@ -78,7 +78,7 @@ body {
 }
 .accounts-table th { color: var(--muted); font-weight: 600; }
 .accounts-table .num { text-align: right; font-variant-numeric: tabular-nums; }
-.accounts-table .negative { color: var(--red); }
+.accounts-table .negative, .setup .negative, .negative { color: var(--red); }
 
 .inline-form { display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; }
 .inline-form input {
@@ -217,3 +217,23 @@ html.privacy input[type="number"] { -webkit-text-security: disc; }
   html.privacy input[type="number"] { filter: blur(5px); }
 }
 #privacy-btn[aria-pressed="true"] { border-color: var(--accent, #4f9eff); }
+
+/* First-run setup wizard */
+.setup { max-width: 760px; margin: 0 auto; }
+.setup h2 { margin-top: 0; }
+.setup p, .setup li { line-height: 1.55; }
+.setup-dots { display: flex; gap: 0.5rem; list-style: none; padding: 0; margin: 0 0 1rem; flex-wrap: wrap; }
+.setup-dots li { color: var(--muted); font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid transparent; }
+.setup-dots li.active { color: var(--text); border-color: var(--accent); }
+.setup-list li { margin-bottom: 0.4rem; }
+.setup-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; }
+.setup-form label { display: block; margin-bottom: 0.9rem; }
+.setup-form input, .setup-form select {
+  display: block; width: 100%; margin-top: 0.3rem; box-sizing: border-box;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  padding: 0.5rem 0.6rem; border-radius: 6px; font: inherit;
+}
+.setup-form details { margin-bottom: 0.9rem; }
+.setup-linked { padding-left: 1.2rem; }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+a.btn { text-decoration: none; display: inline-block; }

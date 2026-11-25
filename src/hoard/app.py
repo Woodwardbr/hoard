@@ -11,7 +11,7 @@ from pathlib import Path
 import plaid as plaid_sdk
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
@@ -62,6 +62,22 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Hoard", lifespan=lifespan)
+# Pages that need Plaid keys to be useful; without keys they send you to /setup.
+_PAGES = frozenset({"/", "/budgets", "/portfolio", "/debt", "/splits", "/settings"})
+
+
+async def _first_run_redirect(request: Request, call_next):
+    if (
+        request.method == "GET"
+        and request.url.path in _PAGES
+        and not plaid.credentials_configured()
+    ):
+        return RedirectResponse("/setup", status_code=303)
+    return await call_next(request)
+
+
+# Registered first so the localhost guard (added last, so outermost) runs before it.
+app.middleware("http")(_first_run_redirect)
 app.middleware("http")(local_guard.middleware)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.include_router(api_router)
@@ -176,6 +192,26 @@ def debt_page(request: Request) -> HTMLResponse:
 def splits_page(request: Request) -> HTMLResponse:
     return TEMPLATES.TemplateResponse(
         request, "splits.html", {"plaid_env": settings.plaid_env_value}
+    )
+
+
+@app.get("/setup", response_class=HTMLResponse)
+def setup_page(request: Request, step: str | None = None) -> HTMLResponse:
+    """First-run wizard. ``?step=keys`` jumps to changing the Plaid keys."""
+    configured = plaid.credentials_configured()
+    steps = ("welcome", "plaid", "keys", "bank", "done")
+    start = step if step in steps else ("keys" if configured else "welcome")
+    return TEMPLATES.TemplateResponse(
+        request,
+        "setup.html",
+        {
+            "start_step": start,
+            "keys_configured": configured,
+            "keys_source": {"env": "your .env file", "keychain": "secure storage"}.get(
+                config.PLAID_CREDENTIALS_SOURCE, ""
+            ),
+            "has_items": bool(sync.list_items()),
+        },
     )
 
 

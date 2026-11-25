@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Set up Hoard{% endblock %}
+{% block topbar %}
+<header class="topbar">
+  <div class="brand">Hoard</div>
+  <div class="actions"><span class="env-badge">Setup</span></div>
+</header>
+{% endblock %}
+{% block content %}
+<div id="setup" class="setup" data-start="{{ start_step }}">
+  <ol class="setup-dots">
+    <li data-step-dot="welcome">Welcome</li>
+    <li data-step-dot="plaid">Plaid account</li>
+    <li data-step-dot="keys">Your keys</li>
+    <li data-step-dot="bank">First bank</li>
+    <li data-step-dot="done">Done</li>
+  </ol>
+
+  {# ---------------------------------------------------------------- 1 #}
+  <section class="card" data-step="welcome">
+    <h2>Welcome to Hoard</h2>
+    <p>Hoard shows all your accounts in one place: net worth, spending, budgets, investments
+      and loans. It runs entirely on this computer.</p>
+    <ul>
+      <li><strong>Your data stays here.</strong> It's saved in a file on this computer, not on
+        anyone's server. There's no Hoard account to create.</li>
+      <li><strong>It only reads.</strong> Hoard can see balances and transactions. It can't
+        move money or pay bills.</li>
+      <li><strong>Banks connect through Plaid</strong>, the service many finance apps use. You
+        log in to your bank in Plaid's window; Hoard never sees your bank password.</li>
+    </ul>
+    <p>Setup takes about 15 minutes, plus however long Plaid takes to approve your account
+      (often quick, sometimes a day or two).</p>
+    <div class="setup-nav">
+      <span></span>
+      <button class="btn btn-primary" data-goto="plaid">Get started</button>
+    </div>
+  </section>
+
+  {# ---------------------------------------------------------------- 2 #}
+  <section class="card" data-step="plaid" hidden>
+    <h2>Create your free Plaid account</h2>
+    <p>Hoard uses your own Plaid account to connect to your banks. Plaid's free Trial plan covers
+      up to 10 bank logins, which is plenty for a household.</p>
+    <ol class="setup-list">
+      <li>Open <a href="https://dashboard.plaid.com/signup" target="_blank" rel="noopener">dashboard.plaid.com/signup</a>
+        and create an account with your email.</li>
+      <li>When Plaid asks how you'll use it, choose <strong>Personal use</strong>.</li>
+      <li>Answer the short questionnaire. Something like this is fine:
+        <em>"I'm using Hoard, a personal finance app that runs on my own computer, to see my own
+        accounts. Nobody else's data is involved."</em></li>
+      <li>Once your account is ready, find your keys in the Plaid dashboard under
+        <strong>Developers</strong>, then <strong>Keys</strong>. You need the
+        <strong>client_id</strong> and the <strong>Production secret</strong>.</li>
+    </ol>
+    <p class="muted">Keep your secret private, like a password. Hoard stores it in your
+      computer's secure password storage.</p>
+    <div class="setup-nav">
+      <button class="btn btn-secondary" data-goto="welcome">Back</button>
+      <button class="btn btn-primary" data-goto="keys">I have my keys</button>
+    </div>
+  </section>
+
+  {# ---------------------------------------------------------------- 3 #}
+  <section class="card" data-step="keys" hidden>
+    <h2>Paste your Plaid keys</h2>
+    <form id="setup-keys-form" class="setup-form" autocomplete="off">
+      <label>client_id
+        <input name="client_id" required spellcheck="false" placeholder="e.g. 64f0c1a2b3c4d5e6f7a8b9c0" />
+      </label>
+      <label>Secret
+        <input name="secret" type="password" required spellcheck="false" />
+      </label>
+      <details>
+        <summary class="muted">Advanced</summary>
+        <label>Plaid environment
+          <select name="environment">
+            <option value="production" selected>Production (real banks; use this)</option>
+            <option value="sandbox">Sandbox (fake test banks, for trying Hoard out)</option>
+          </select>
+        </label>
+        <p class="muted">With Sandbox, use your Sandbox secret and log in to any test bank as
+          <code>user_good</code> / <code>pass_good</code>.</p>
+      </details>
+      <p id="setup-keys-error" class="negative" hidden></p>
+      <div class="setup-nav">
+        <button type="button" class="btn btn-secondary" data-goto="plaid">Back</button>
+        <button type="submit" class="btn btn-primary">Save keys</button>
+      </div>
+    </form>
+    {% if keys_configured %}
+    <p class="muted">Keys are already set up{% if keys_source %} (from {{ keys_source }}){% endif %}.
+      Saving new ones replaces them. <a href="/">Back to the dashboard</a></p>
+    {% endif %}
+  </section>
+
+  {# ---------------------------------------------------------------- 4 #}
+  <section class="card" data-step="bank" hidden>
+    <h2>Add your first bank</h2>
+    <p>Your keys work and are saved in <span id="setup-saved-to">secure storage</span>.</p>
+    <p>Click <strong>Add a bank</strong>. Plaid opens a window where you:</p>
+    <ol class="setup-list">
+      <li>Search for your bank, card or brokerage.</li>
+      <li>Log in with your usual username and password (some banks open their own site for
+        this). Hoard never sees these.</li>
+      <li>Choose which accounts to share, and agree.</li>
+    </ol>
+    <p>Then Hoard pulls in balances and recent transactions, which can take a minute.
+      Add as many banks as you like (up to 10 logins on Plaid's free plan).</p>
+    <p><button id="setup-link-btn" class="btn btn-primary">Add a bank</button></p>
+    <ul id="setup-linked" class="setup-linked" hidden></ul>
+    <p id="setup-bank-error" class="negative" hidden></p>
+    <div class="setup-nav">
+      <button class="btn btn-secondary" data-goto="keys">Back</button>
+      <button id="setup-bank-next" class="btn btn-primary" data-goto="done" {% if not has_items %}disabled{% endif %}>Continue</button>
+    </div>
+    <p class="muted"><a href="#" data-goto="done">Skip for now</a>. You can add banks later with
+      <strong>Link Account</strong> at the top of every page.</p>
+  </section>
+
+  {# ---------------------------------------------------------------- 5 #}
+  <section class="card" data-step="done" hidden>
+    <h2>You're all set</h2>
+    <ul>
+      <li><strong>Dashboard</strong>: net worth over time and this month's spending.</li>
+      <li><strong>Budgets</strong>: set monthly limits per category and track them.</li>
+      <li><strong>Portfolio</strong>: where your investments are, by sector.</li>
+      <li><strong>Debt Tracker</strong>: loans, payments and when they'll be paid off.</li>
+      <li><strong>Sync</strong> (top right) pulls the latest from your banks. Do it whenever you
+        open Hoard.</li>
+      <li><strong>Privacy</strong> (top right) hides every dollar amount, so you can show
+        someone the app without showing your numbers.</li>
+      <li><strong>Settings</strong>: reconnect a bank if it asks you to log in again, or change
+        your Plaid keys.</li>
+    </ul>
+    <div class="setup-nav">
+      <span></span>
+      <a class="btn btn-primary" href="/">Open my dashboard</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

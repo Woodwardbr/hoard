@@ -70,21 +70,35 @@ async function api(path, opts) {
 }
 
 // --- Plaid Link flow -------------------------------------------------------
-document.getElementById("link-btn")?.addEventListener("click", async () => {
-  try {
-    const { link_token } = await api("/api/link-token");
+// Opens Plaid Link for a new bank. Resolves to the institution name once the
+// bank is linked and its first sync is done, or null if the user closed Link.
+async function linkNewBank() {
+  const { link_token } = await api("/api/link-token");
+  return new Promise((resolve, reject) => {
     const handler = Plaid.create({
       token: link_token,
       onSuccess: async (publicToken, metadata) => {
-        await api("/api/exchange-public-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ public_token: publicToken, institution: metadata?.institution?.name }),
-        });
-        location.reload();
+        try {
+          const institution = metadata?.institution?.name;
+          await api("/api/exchange-public-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ public_token: publicToken, institution }),
+          });
+          resolve(institution || "your bank");
+        } catch (err) {
+          reject(err);
+        }
       },
+      onExit: (err) => (err ? reject(new Error(err.display_message || err.error_message || "Plaid Link closed")) : resolve(null)),
     });
     handler.open();
+  });
+}
+
+document.getElementById("link-btn")?.addEventListener("click", async () => {
+  try {
+    if (await linkNewBank()) location.reload();
   } catch (err) {
     alert("Link failed: " + err.message);
   }
@@ -763,19 +777,7 @@ async function toggleReclassifySectorRow(tr, currentSector) {
 // Portfolio-specific Plaid Link button (separate from the dashboard's)
 document.getElementById("portfolio-link-btn")?.addEventListener("click", async () => {
   try {
-    const { link_token } = await api("/api/link-token");
-    const handler = Plaid.create({
-      token: link_token,
-      onSuccess: async (publicToken, metadata) => {
-        await api("/api/exchange-public-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ public_token: publicToken, institution: metadata?.institution?.name }),
-        });
-        location.reload();
-      },
-    });
-    handler.open();
+    if (await linkNewBank()) location.reload();
   } catch (err) {
     alert("Link failed: " + err.message);
   }
@@ -1737,3 +1739,76 @@ document.getElementById("split-delete-group")?.addEventListener("click", () => {
 });
 
 loadSplits();
+
+// --- First-run setup wizard ---------------------------------------------------
+(function setupWizard() {
+  const root = document.getElementById("setup");
+  if (!root) return;
+  const steps = [...root.querySelectorAll("[data-step]")];
+  const show = (name) => {
+    steps.forEach((el) => (el.hidden = el.dataset.step !== name));
+    root.querySelectorAll("[data-step-dot]").forEach((dot) =>
+      dot.classList.toggle("active", dot.dataset.stepDot === name));
+    window.scrollTo(0, 0);
+  };
+  root.querySelectorAll("[data-goto]").forEach((btn) =>
+    btn.addEventListener("click", () => show(btn.dataset.goto)));
+  show(root.dataset.start || "welcome");
+
+  const form = document.getElementById("setup-keys-form");
+  const keysError = document.getElementById("setup-keys-error");
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    keysError.hidden = true;
+    const btn = form.querySelector("button[type=submit]");
+    btn.disabled = true;
+    btn.textContent = "Checking with Plaid…";
+    try {
+      const res = await api("/api/setup/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: form.elements.client_id.value.trim(),
+          secret: form.elements.secret.value.trim(),
+          environment: form.elements.environment.value,
+        }),
+      });
+      document.getElementById("setup-saved-to").textContent = res.saved_to_label;
+      show("bank");
+    } catch (err) {
+      keysError.textContent = err.message;
+      keysError.hidden = false;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Save keys";
+    }
+  });
+
+  const linked = document.getElementById("setup-linked");
+  const bankError = document.getElementById("setup-bank-error");
+  document.getElementById("setup-link-btn")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    bankError.hidden = true;
+    btn.disabled = true;
+    btn.textContent = "Waiting for Plaid…";
+    try {
+      const name = await linkNewBank();
+      if (name) {
+        const li = document.createElement("li");
+        li.textContent = `${name}: linked and synced`;
+        linked.appendChild(li);
+        linked.hidden = false;
+        document.getElementById("setup-bank-next").disabled = false;
+        btn.textContent = "Add another bank";
+      } else {
+        btn.textContent = linked.children.length ? "Add another bank" : "Add a bank";
+      }
+    } catch (err) {
+      bankError.textContent = err.message;
+      bankError.hidden = false;
+      btn.textContent = "Try again";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();

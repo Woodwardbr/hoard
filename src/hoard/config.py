@@ -123,7 +123,15 @@ def _agent_allow_writes() -> bool:
     return bool(_env("MUSE_API_TOKEN")) and not _env("AGENT_API_TOKEN")
 
 
-_PLAID_ENV = _env("PLAID_ENV", "sandbox").strip().lower()
+def _stored_plaid_env() -> str:
+    from . import keystore
+
+    return keystore.get("plaid_env") or ""
+
+
+PLAID_ENVS = ("production", "sandbox")
+# .env wins, then what the setup wizard saved; real (Trial plan) keys are production keys.
+_PLAID_ENV = (_env("PLAID_ENV") or _stored_plaid_env() or "production").strip().lower()
 _CLIENT_ID, _CLIENT_ID_SOURCE = _from_env_or_keystore(_env("PLAID_CLIENT_ID"), "plaid_client_id")
 _SECRET, _SECRET_SOURCE = _from_env_or_keystore(
     _plaid_secret(_PLAID_ENV), f"plaid_secret_{_PLAID_ENV}"
@@ -144,3 +152,44 @@ settings = Settings(
     agent_port=int(_env("AGENT_PORT") or _env("MUSE_PORT") or "8001"),
     agent_allow_writes=_agent_allow_writes(),
 )
+
+
+def apply_plaid_credentials(client_id: str, secret: str, env: str, source: str) -> None:
+    """Use new Plaid keys right away, without a restart.
+
+    ``settings`` is one shared instance imported by every module, so it is
+    updated in place (it is frozen only to stop accidental edits).
+    """
+    global PLAID_CREDENTIALS_SOURCE
+    object.__setattr__(settings, "plaid_client_id", client_id)
+    object.__setattr__(settings, "plaid_secret", secret)
+    object.__setattr__(settings, "plaid_env", env)
+    PLAID_CREDENTIALS_SOURCE = source
+
+
+def save_plaid_credentials(client_id: str, secret: str, env: str) -> str:
+    """Store Plaid keys for future starts; returns where ("keychain" or "env").
+
+    Prefers the OS keychain. Without one, writes them to ``.env`` in the data
+    folder, readable only by this user.
+    """
+    from . import keystore
+
+    if (
+        keystore.set("plaid_client_id", client_id)
+        and keystore.set(f"plaid_secret_{env}", secret)
+        and keystore.set("plaid_env", env)
+    ):
+        return "keychain"
+
+    path = data_dir() / ".env"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    keep = []
+    if path.exists():
+        drop = ("PLAID_CLIENT_ID=", "PLAID_SECRET=", "PLAID_ENV=")
+        keep = [ln for ln in path.read_text().splitlines() if not ln.startswith(drop)]
+    lines = keep + [f"PLAID_CLIENT_ID={client_id}", f"PLAID_SECRET={secret}", f"PLAID_ENV={env}"]
+    path.touch(mode=0o600, exist_ok=True)
+    path.chmod(0o600)
+    path.write_text("\n".join(lines) + "\n")
+    return "env"

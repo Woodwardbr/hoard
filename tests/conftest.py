@@ -37,6 +37,20 @@ def allow_testclient_host(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def fake_plaid_keys(monkeypatch):
+    """Pages redirect to /setup without Plaid keys; give tests some (never used for real)."""
+    import dataclasses
+
+    from hoard import plaid
+
+    monkeypatch.setattr(
+        plaid,
+        "settings",
+        dataclasses.replace(plaid.settings, plaid_client_id="test-cid", plaid_secret="test-sec"),
+    )
+
+
+@pytest.fixture(autouse=True)
 def memory_keyring():
     previous = keyring.get_keyring()
     backend = MemoryKeyring()
