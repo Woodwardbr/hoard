@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import os
 
 import plaid as plaid_sdk
 import pytest
@@ -95,4 +96,5 @@ def test_keys_fall_back_to_private_env_file_without_keychain(tmp_path, monkeypat
     assert env.read_text().splitlines() == [
         "APP_PORT=8123", "PLAID_CLIENT_ID=cid", "PLAID_SECRET=sec", "PLAID_ENV=production",
     ]
-    assert oct(env.stat().st_mode & 0o777) == "0o600"
+    if os.name != "nt":  # Windows has no Unix permission bits
+        assert oct(env.stat().st_mode & 0o777) == "0o600"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import plistlib
 import sys
 
@@ -27,7 +28,9 @@ def test_mac_app_bundle(tmp_path, monkeypatch):
     plist = plistlib.loads((app / "Contents" / "Info.plist").read_bytes())
     assert plist["CFBundleExecutable"] == "Hoard"
     launcher = app / "Contents" / "MacOS" / "Hoard"
-    assert "-m hoard" in launcher.read_text() and launcher.stat().st_mode & 0o111
+    assert "-m hoard" in launcher.read_text()
+    if os.name != "nt":
+        assert launcher.stat().st_mode & 0o111
     assert (app / "Contents" / "Resources" / "hoard.icns").exists()
     shortcuts._mac(remove=True)
     assert not app.exists()

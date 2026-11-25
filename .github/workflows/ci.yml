@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Never touch a real keychain in CI; tests install their own in-memory one.
+  PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+
+jobs:
+  test:
+    name: Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --extra dev --python 3.13
+      - run: uv run ruff check .
+      - run: uv run pytest -q
+
+  install:
+    name: Installer (${{ matrix.os }})
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build
+      - name: Install with install.sh
+        if: runner.os != 'Windows'
+        run: HOARD_WHEEL="$(ls "$PWD"/dist/*.whl)" sh install/install.sh
+      - name: Install with install.ps1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:HOARD_WHEEL = (Get-ChildItem dist/*.whl).FullName
+          ./install/install.ps1
+      - name: Start, check and quit the installed app
+        shell: bash
+        run: |
+          bin="$(uv tool dir --bin)"
+          exe="$bin/hoard"; [ -f "$exe.exe" ] && exe="$exe.exe"
+          uv run --no-project python scripts/smoke_installed.py "$exe"
+      - name: Shortcuts exist
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux)   test -f "$HOME/.local/share/applications/hoard.desktop" ;;
+            macOS)   test -x "$HOME/Applications/Hoard.app/Contents/MacOS/Hoard" ;;
+            Windows) pwsh -c 'if (-not (Test-Path (Join-Path ([Environment]::GetFolderPath("Programs")) "Hoard.lnk"))) { exit 1 }' ;;
+          esac
+      - name: Uninstall
+        if: runner.os != 'Windows'
+        run: sh install/uninstall.sh && ! command -v hoard
+      - name: Uninstall (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./install/uninstall.ps1
