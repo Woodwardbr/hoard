@@ -12,6 +12,8 @@ permissions:
 env:
   # Never touch a real keychain in CI; tests install their own in-memory one.
   PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+  # Test on the oldest supported Python (the repo's .python-version is newer).
+  UV_PYTHON: "3.13"
 
 jobs:
   test:
@@ -24,9 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync --extra dev --python 3.13
-      - run: uv run ruff check .
-      - run: uv run pytest -q
+      - run: uv sync --extra dev
+      - run: uv run --extra dev ruff check .
+      - run: uv run --extra dev pytest -q
 
   install:
     name: Installer (${{ matrix.os }})
