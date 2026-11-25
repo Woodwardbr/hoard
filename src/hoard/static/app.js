@@ -9,6 +9,17 @@ const fmt = (n) =>
 // Non-currency amounts (share quantities etc.).
 const maskNum = (text) => (PRIVACY ? "•••" : text);
 
+document.getElementById("quit-btn")?.addEventListener("click", async () => {
+  try {
+    await api("/api/shutdown", { method: "POST" });
+  } catch {}
+  document.body.innerHTML =
+    '<main class="container" style="max-width:640px;margin:4rem auto;text-align:center">' +
+    "<h2>Hoard has stopped</h2>" +
+    '<p class="muted">Your data is saved. You can close this tab. To open Hoard again, use its shortcut.</p>' +
+    "</main>";
+});
+
 document.getElementById("privacy-btn")?.addEventListener("click", () => {
   const next = PRIVACY ? "0" : "1";
   document.cookie = `hoard_privacy=${next}; path=/; max-age=31536000; SameSite=Lax`;

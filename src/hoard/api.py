@@ -9,7 +9,7 @@ import plaid as plaid_sdk
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import analytics, config, splits, sync
+from . import __version__, analytics, config, splits, sync
 from . import plaid as plaid_wrapper
 from .config import settings
 from .plaid import create_link_token as create_plaid_link_token
@@ -111,7 +111,21 @@ def setup_keys(req: SetupKeysReq) -> dict:
 
 @router.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "plaid_env": settings.plaid_env_value}
+    # "app" lets a second launch recognise an already-running Hoard on the port.
+    return {"status": "ok", "app": "hoard", "version": __version__,
+            "plaid_env": settings.plaid_env_value}
+
+
+# uvicorn servers started by app.run(), so the Quit button can stop them.
+RUNNING_SERVERS: list = []
+
+
+@router.post("/api/shutdown")
+def shutdown() -> dict:
+    """Stop Hoard (the Quit button). Same-origin only, via the localhost guard."""
+    for server in RUNNING_SERVERS:
+        server.should_exit = True
+    return {"status": "stopping" if RUNNING_SERVERS else "not running from the hoard command"}
 
 
 @router.get("/api/link-token", response_model=LinkTokenResp)

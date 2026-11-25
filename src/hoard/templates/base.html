@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Hoard{% endblock %}</title>
-  <link rel="stylesheet" href="/static/styles.css?v=9" />
+  <link rel="stylesheet" href="/static/styles.css?v=10" />
   <script src="/static/vendor/chart.umd.min.js"></script>
   <!-- Plaid ships a mutable `stable` URL so SRI is not possible. No `crossorigin`
        attribute: cdn.plaid.com sends no Access-Control-Allow-Origin header, so a
@@ -32,6 +32,7 @@
       </button>
       <button id="sync-btn" class="btn btn-secondary">Sync</button>
       <button id="link-btn" class="btn btn-primary">Link Account</button>
+      <button id="quit-btn" class="btn btn-secondary" type="button" title="Stop Hoard. Your data is saved.">Quit</button>
     </div>
   </header>
   {% endblock %}
@@ -39,7 +40,8 @@
   <main class="container">
     {% block content %}{% endblock %}
   </main>
+  <footer class="footer muted">Hoard {{ version }} · runs on this computer · <a href="https://github.com/Woodwardbr/hoard" target="_blank" rel="noopener">source</a></footer>
 
-  <script src="/static/app.js?v=26"></script>
+  <script src="/static/app.js?v=27"></script>
 </body>
 </html>

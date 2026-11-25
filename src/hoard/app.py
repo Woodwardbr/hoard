@@ -16,7 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
 
-from . import analytics, backup, config, keystore, local_guard, plaid, sync
+from . import __version__, analytics, backup, config, keystore, local_guard, plaid, sync
+from . import api as api_module
 from .api import router as api_router
 from .config import settings
 from .db import get_conn
@@ -51,6 +52,7 @@ TEMPLATES.env.filters["money"] = _money_filter
 TEMPLATES.env.filters["last4"] = _last4_filter
 TEMPLATES.env.globals["privacy_on"] = privacy_on
 TEMPLATES.env.globals["plaid_env"] = settings.plaid_env_value
+TEMPLATES.env.globals["version"] = __version__
 
 
 @asynccontextmanager
@@ -260,6 +262,17 @@ def _is_loopback(host: str) -> bool:
         return False
 
 
+def _already_running() -> bool:
+    import json
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(dashboard_url() + "api/health", timeout=1.5) as resp:
+            return json.load(resp).get("app") == "hoard"
+    except Exception:  # nothing listening, or something that isn't Hoard
+        return False
+
+
 def dashboard_url() -> str:
     host = settings.app_host
     if host in ("0.0.0.0", "::", ""):
@@ -306,6 +319,14 @@ def run(argv: list[str] | None = None) -> None:
         return
     open_browser = not (args.no_browser or os.environ.get("HOARD_NO_BROWSER"))
 
+    # Double-clicking the shortcut again shouldn't fail on a busy port: if Hoard
+    # is already running there, just show it.
+    if _already_running():
+        print(f"Hoard is already running at {dashboard_url()}")
+        if open_browser:
+            webbrowser.open(dashboard_url())
+        return
+
     configs = [
         uvicorn.Config("hoard.app:app", host=settings.app_host, port=settings.app_port)
     ]
@@ -327,6 +348,7 @@ def run(argv: list[str] | None = None) -> None:
 
     async def serve_all() -> None:
         servers = [uvicorn.Server(c) for c in configs]
+        api_module.RUNNING_SERVERS[:] = servers
         tasks = [s.serve() for s in servers]
         if open_browser:
             print(f"Opening {dashboard_url()} in your browser…")

@@ -237,3 +237,6 @@ html.privacy input[type="number"] { -webkit-text-security: disc; }
 .setup-linked { padding-left: 1.2rem; }
 .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 a.btn { text-decoration: none; display: inline-block; }
+
+.footer { text-align: center; font-size: 0.8rem; padding: 1.5rem 0 2rem; }
+.footer a { color: inherit; }

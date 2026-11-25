@@ -45,3 +45,28 @@ def test_dns_rebinding_host_blocked():
 
 def test_localhost_get_allowed():
     assert TestClient(app, base_url="http://localhost:8000").get("/api/health").status_code == 200
+
+
+def test_shutdown_stops_running_servers():
+    from hoard import api
+
+    class FakeServer:
+        should_exit = False
+
+    server = FakeServer()
+    api.RUNNING_SERVERS[:] = [server]
+    try:
+        resp = _client().post("/api/shutdown", headers={"Origin": "http://127.0.0.1:8000"})
+        assert resp.status_code == 200 and server.should_exit is True
+        # Another website can't quit Hoard.
+        server.should_exit = False
+        evil = _client().post("/api/shutdown", headers={"Origin": "https://evil.example"})
+        assert evil.status_code == 403
+        assert server.should_exit is False
+    finally:
+        api.RUNNING_SERVERS.clear()
+
+
+def test_health_identifies_hoard():
+    body = _client().get("/api/health").json()
+    assert body["app"] == "hoard" and body["version"]
