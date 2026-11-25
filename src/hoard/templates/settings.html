@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Settings · Hoard{% endblock %}
+{% block content %}
+<div class="grid grid-even">
+  <section class="card">
+    <h3>Linked banks</h3>
+    {% if items %}
+    <table class="accounts-table">
+      <thead><tr><th>Institution</th><th class="num">Accounts</th><th>Last synced</th><th></th></tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.institution or '—' }}</td>
+          <td class="num">{{ it.accounts }}</td>
+          <td>{{ it.last_synced or 'never' }}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm btn-secondary" data-sync-item="{{ it.item_id }}">Sync</button>
+            <button class="btn btn-sm btn-secondary" data-relink-item="{{ it.item_id }}" title="Log in again without creating a duplicate connection">Reconnect</button>
+            <button class="btn btn-sm btn-danger" data-unlink-item="{{ it.item_id }}">Remove</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No banks linked yet. Use <strong>Link Account</strong> at the top right.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h3>Plaid</h3>
+    <table class="accounts-table">
+      <tbody>
+        <tr><td>Environment</td><td>{{ plaid_env }}</td></tr>
+        <tr><td>Keys come from</td><td>{{ credentials_source }}</td></tr>
+        <tr>
+          <td>Secure storage</td>
+          <td>
+            {% if keychain_available %}OS keychain ({{ keychain_backend }}). Bank access tokens are stored there.
+            {% else %}<span class="negative">No OS keychain available</span>. Bank access tokens are stored unencrypted in the database.
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:1.5rem">Your data</h3>
+    <table class="accounts-table">
+      <tbody>
+        <tr><td>Data folder</td><td><code>{{ data_folder }}</code></td></tr>
+        <tr><td>Database</td><td><code>{{ db_path }}</code></td></tr>
+        <tr><td>Settings file</td><td>{% if env_file %}<code>{{ env_file }}</code>{% else %}none{% endif %}</td></tr>
+        <tr>
+          <td>Backups</td>
+          <td>{{ backup_count }} daily backup{{ '' if backup_count == 1 else 's' }} in <code>{{ backup_dir }}</code>{% if latest_backup %} (latest: {{ latest_backup }}){% endif %}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:1.5rem">AI agents</h3>
+    <table class="accounts-table">
+      <tbody>
+        <tr><td>MCP server</td><td>available with <code>hoard mcp</code>, {{ 'read and write' if mcp_writes else 'read-only' }}</td></tr>
+        <tr><td>HTTP agent API</td><td>{{ agent_api }}{% if agent_api != 'off' %}, {{ 'read and write' if agent_api_writes else 'read-only' }}{% endif %}</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Anything an agent reads is sent to its AI provider. See <code>docs/AGENT_API.md</code>.</p>
+
+    <h3 style="margin-top:1.5rem">Privacy mode</h3>
+    <p class="muted">
+      Privacy mode is <strong>{{ 'on' if privacy_on(request) else 'off' }}</strong> and stays that way in this
+      browser until you switch it with the button at the top. It hides dollar amounts on screen so you can
+      share it; percentages and chart shapes stay visible. The data itself isn't changed.
+    </p>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en"{% if privacy_on(request) %} class="privacy"{% endif %}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Hoard{% endblock %}</title>
+  <link rel="stylesheet" href="/static/styles.css?v=8" />
+  <script src="/static/vendor/chart.umd.min.js"></script>
+  <!-- Plaid ships a mutable `stable` URL so SRI is not possible. No `crossorigin`
+       attribute: cdn.plaid.com sends no Access-Control-Allow-Origin header, so a
+       CORS-mode load is blocked and `Plaid` is never defined. -->
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Hoard</div>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/budgets">Budgets</a>
+      <a href="/portfolio">Portfolio</a>
+      <a href="/debt">Debt Tracker</a>
+      <a href="/splits">Splits</a>
+      <a href="/settings">Settings</a>
+    </nav>
+    <div class="actions">
+      <span class="env-badge">env: {{ plaid_env }}</span>
+      <button id="privacy-btn" class="btn btn-secondary" type="button"
+              aria-pressed="{{ 'true' if privacy_on(request) else 'false' }}"
+              title="Privacy mode hides dollar amounts on screen so you can share it. The underlying data is unchanged (and still visible in the browser's developer tools).">
+        {% if privacy_on(request) %}🙈 Privacy on{% else %}👁 Privacy{% endif %}
+      </button>
+      <button id="sync-btn" class="btn btn-secondary">Sync</button>
+      <button id="link-btn" class="btn btn-primary">Link Account</button>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="/static/app.js?v=25"></script>
+</body>
+</html>

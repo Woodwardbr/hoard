@@ -1,0 +1,50 @@
+[project]
+name = "hoard"
+version = "0.1.0"
+description = "Your finances, guarded on your own computer: a private, local personal finance dashboard synced via Plaid"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Brandon Woodward" }]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "jinja2>=3.1",
+    "plaid-python>=30.0",
+    "python-dotenv>=1.0",
+    "platformdirs>=4.14.8",
+    "keyring>=25.7.0",
+    "mcp>=2.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6",
+    "pytest>=8.0",
+    "httpx2>=2.13.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/Woodwardbr/hoard"
+Issues = "https://github.com/Woodwardbr/hoard/issues"
+
+[project.scripts]
+hoard = "hoard.app:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hoard"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

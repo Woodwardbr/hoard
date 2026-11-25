@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="splits-page" class="budget-columns">
+  {# ---------------- Left column: groups ---------------- #}
+  <section class="card">
+    <h3>Groups</h3>
+    <p class="muted">Expense groups (a trip, a weekend). Pick one to assign transactions and see who owes you.</p>
+    <ul id="split-groups-list"></ul>
+
+    <h3 style="margin-top:1.5rem">New group</h3>
+    <form id="split-group-form" class="inline-form">
+      <input type="text" name="name" placeholder="Group name (e.g. Tahoe 2026)" required />
+      <input type="date" name="start_date" aria-label="Start date" />
+      <input type="date" name="end_date" aria-label="End date" />
+      <input type="text" name="members" placeholder="Alex, Sam, Jordan" list="split-people-list" />
+      <button type="submit" class="btn btn-primary">Create Group</button>
+    </form>
+    <datalist id="split-people-list"></datalist>
+  </section>
+
+  {# ---------------- Right column: selected group ---------------- #}
+  <section class="card" id="split-group-panel" hidden>
+    <h3 id="split-group-title">Group</h3>
+
+    <form id="split-add-member-form" class="inline-form">
+      <input type="text" name="names" placeholder="Add people (comma-separated)" list="split-people-list" required />
+      <button type="submit" class="btn btn-secondary">Add people</button>
+    </form>
+
+    <h4>Balances</h4>
+    <table class="accounts-table" id="split-balances-table">
+      <thead>
+        <tr><th>Person</th><th class="num">Owed</th><th class="num">Repaid</th><th class="num">Outstanding</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p id="split-my-share" class="muted"></p>
+
+    <form id="split-repayment-form" class="inline-form">
+      <select name="person_id" aria-label="Person"></select>
+      <input type="number" name="amount" placeholder="Amount $" step="0.01" min="0.01" required />
+      <input type="date" name="paid_date" aria-label="Date paid" />
+      <button type="submit" class="btn btn-secondary">Record repayment</button>
+    </form>
+
+    <h4 style="margin-top:1.5rem">Find expenses</h4>
+    <form id="split-search-form" class="inline-form">
+      <input type="date" name="start" aria-label="From" required />
+      <input type="date" name="end" aria-label="To" required />
+      <input type="text" name="q" placeholder="Search name/merchant" />
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+    <table class="accounts-table tx-table" id="split-search-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="split-select-all" aria-label="Select all" /></th>
+          <th>Date</th><th>Name</th><th>Account</th><th>Category</th>
+          <th class="num">Amount</th><th>Group</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p id="split-selection-line" class="muted"></p>
+
+    <div id="split-panel" hidden>
+      <h4>Split</h4>
+      <div id="split-participants"></div>
+      <div class="split-modes">
+        <button type="button" class="btn btn-primary" data-mode="even">Even</button>
+        <button type="button" class="btn btn-secondary" data-mode="exact">Exact $</button>
+        <button type="button" class="btn btn-secondary" data-mode="shares">Shares</button>
+      </div>
+      <div id="split-values"></div>
+      <div id="split-preview" class="muted"></div>
+      <div class="inline-form">
+        <button type="button" id="split-assign-btn" class="btn btn-primary">Assign to group</button>
+        <button type="button" id="split-cancel-btn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <h4 style="margin-top:1.5rem">Assigned expenses</h4>
+    <table class="accounts-table tx-table" id="split-expenses-table">
+      <thead>
+        <tr><th>Date</th><th>Name</th><th class="num">Amount</th><th>Split</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h4 style="margin-top:1.5rem">Repayments</h4>
+    <table class="accounts-table tx-table" id="split-repayments-table">
+      <thead>
+        <tr><th>Date</th><th>Person</th><th class="num">Amount</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <p style="margin-top:1.5rem">
+      <button type="button" id="split-delete-group" class="btn btn-danger">Delete group</button>
+    </p>
+  </section>
+</div>
+
+{% endblock %}
