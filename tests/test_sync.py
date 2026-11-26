@@ -99,3 +99,55 @@ def test_link_token_endpoint_unknown_item_404():
     resp = TestClient(app).get("/api/link-token", params={"item_id": "nope"})
     # 400 if Plaid creds aren't configured in the test env; 404 otherwise.
     assert resp.status_code in (400, 404)
+
+
+def test_new_link_requires_only_transactions():
+    """A required Investments product made Link reject card/checking-only logins."""
+    from unittest.mock import MagicMock
+
+    client = MagicMock()
+    client.link_token_create.return_value = {"link_token": "link-new-1"}
+    with patch.object(plaid, "_client", return_value=client):
+        plaid.create_link_token()
+    request = client.link_token_create.call_args.args[0]
+    assert [str(p) for p in request["products"]] == ["transactions"]
+    assert {str(p) for p in request["optional_products"]} == {"investments", "liabilities"}
+
+
+def test_sync_skips_holdings_for_logins_without_investment_accounts(monkeypatch):
+    from hoard import db, sync
+
+    with db.get_conn() as conn:
+        conn.execute("INSERT INTO items (item_id, access_token, institution) VALUES "
+                     "('card', 'tok', 'Card Co')")
+    acct = plaid.AccountSnapshot(
+        account_id="c1", name="Card", mask="1111", kind="credit", subtype="credit card",
+        current_balance=10.0, available_balance=None, iso_currency="USD",
+    )
+    monkeypatch.setattr(plaid, "get_accounts", lambda token: [acct])
+    monkeypatch.setattr(
+        plaid, "get_transactions",
+        lambda token, cursor=None: plaid.TransactionSyncPage(
+            rows=[], removed_ids=[], next_cursor="c"
+        ),
+    )
+
+    def no_call(*_):
+        raise AssertionError("holdings requested for a card-only login")
+
+    monkeypatch.setattr(plaid, "get_holdings", no_call)
+    assert sync.sync_item("card")["holdings"] == 0
+
+
+def test_no_investment_accounts_error_counts_as_no_holdings(monkeypatch):
+    import json
+
+    from hoard import sync
+
+    def boom(token):
+        exc = plaid.plaid.ApiException(status=400, reason="Bad Request")
+        exc.body = json.dumps({"error_code": "NO_INVESTMENT_ACCOUNTS"})
+        raise exc
+
+    monkeypatch.setattr(plaid, "get_holdings", boom)
+    assert sync.sync_holdings("x", "tok", "2026-11-26") == 0

@@ -182,9 +182,9 @@ def sync_item(item_id: str, access_token: str | None = None) -> dict[str, int]:
             (page.next_cursor, item_id),
         )
 
-    # Investment holdings (only returns rows for items with investments consent;
-    # raises on items lacking consent, which we treat as "no holdings").
-    holdings_count = sync_holdings(item_id, access_token, today)
+    # Investment holdings, only for logins that include an investment account.
+    has_investments = any(a.kind == "investment" for a in accounts)
+    holdings_count = sync_holdings(item_id, access_token, today) if has_investments else 0
 
     return {
         "accounts": len(accounts),
@@ -247,6 +247,17 @@ def unlink_item(item_id: str) -> None:
     keystore.delete(keystore.item_key(item_id))
 
 
+# Plaid errors meaning "this login has no investment data for us", not a failure.
+NO_HOLDINGS_CODES = frozenset({
+    "ADDITIONAL_CONSENT_REQUIRED",
+    "PRODUCTS_NOT_SUPPORTED",
+    "PRODUCT_NOT_ENABLED",
+    "NO_INVESTMENT_ACCOUNTS",
+    "NO_INVESTMENT_AUTH_ACCOUNTS",
+    "NO_ACCOUNTS",
+})
+
+
 def sync_holdings(item_id: str, access_token: str, snapshot_date: str) -> int:
     """Fetch & store investment holdings + securities for an item.
 
@@ -259,8 +270,7 @@ def sync_holdings(item_id: str, access_token: str, snapshot_date: str) -> int:
     try:
         holdings, securities = plaid.get_holdings(access_token)
     except Exception as exc:
-        msg = str(exc)
-        if "ADDITIONAL_CONSENT_REQUIRED" in msg or "PRODUCT_INVESTMENTS" in msg:
+        if plaid.error_code(exc) in NO_HOLDINGS_CODES or "PRODUCT_INVESTMENTS" in str(exc):
             return 0
         raise
 

@@ -225,9 +225,13 @@ def _link_token_request(access_token: str | None) -> LinkTokenCreateRequest:
     if access_token is not None:
         return LinkTokenCreateRequest(access_token=access_token, **common)
     return LinkTokenCreateRequest(
-        products=[Products("transactions"), Products("investments")],
-        # Needed by the agent API payoff-balances (statement balances, loan payments due).
-        optional_products=[Products("liabilities")],
+        # Only Transactions is required. Anything listed in ``products`` must be
+        # supported by the bank *and* the user's accounts, so a required
+        # Investments made Link reject every card or checking-only login.
+        products=[Products("transactions")],
+        # Used when available: holdings for brokerages, and statement balances /
+        # due dates for cards and loans (agent API payoff-balances).
+        optional_products=[Products("investments"), Products("liabilities")],
         **common,
     )
 

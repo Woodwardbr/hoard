@@ -1,6 +1,6 @@
 [project]
 name = "hoard"
-version = "0.1.0"
+version = "0.1.1"
 description = "Your finances, guarded on your own computer: a private, local personal finance dashboard synced via Plaid"
 readme = "README.md"
 license = "MIT"
